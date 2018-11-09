@@ -1,5 +1,11 @@
 package edu.gcu.bootcamp.java.student.controller;
 
+
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -15,10 +21,12 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.json.JSONObject;
 
+import edu.gcu.bootcamp.java.student.exception.StudentNotAddedException;
 import edu.gcu.bootcamp.java.student.exception.StudentNotFoundException;
 import edu.gcu.bootcamp.java.student.model.Student;
 import edu.gcu.bootcamp.java.student.service.StudentService;
 import edu.gcu.bootcamp.java.student.service.StudentServiceImpl;
+import edu.gcu.bootcamp.java.student.utility.ValidateInput;
 
 @Path("student")
 public class StudentController {
@@ -26,7 +34,7 @@ public class StudentController {
 	@Path("get/{id}")
 	@GET
 	@Produces("application/json")
-	public Response getStudent(@PathParam("id") int id) {
+	public Response getStudent(@PathParam("id") long id) {
 		
 		StudentService service = new StudentServiceImpl();
 		try {
@@ -47,29 +55,39 @@ public class StudentController {
 		}
 	}
 	
-	@Path("add/")
+	@Path("students/")
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public Response addStudent(@FormParam("studentId") int studentId, @FormParam("firstName") String firstName, 
-			@FormParam("lastname") String lastName, @FormParam("address") String address, @FormParam("city") String city,
+//	@Produces("application/json")
+	public Response addStudent(@FormParam("firstName") String firstName, 
+			@FormParam("lastName") String lastName, @FormParam("address") String address, @FormParam("city") String city,
 			@FormParam("state") String state, @FormParam("zip") String zip) {
 		
-		Student student = new Student();
-		student.setStudentId(studentId);
-		student.setAddress(address);
-		student.setCity(city);
-		student.setFirstName(firstName);
-		student.setLastName(lastName);
-		student.setState(state);
-		student.setZip(zip);
+		List<String> missingFields = ValidateInput.validateAddStudentInput(firstName, lastName, address, city, state, zip);
 		
-		SessionFactory factory = new Configuration().configure().buildSessionFactory();
-		Session session = factory.openSession();
-		session.beginTransaction();
-		session.save(student);
-		session.getTransaction().commit();
+		StringBuilder messageBuilder = new StringBuilder("Please include the following fields: ");
+		if (missingFields.size() != 0) {
+			for(String field : missingFields) {
+				messageBuilder.append(field).append(", ");
+			}
+			String message = messageBuilder.substring(0, messageBuilder.lastIndexOf(", "));
+			return Response.status(400).entity(message).build();
+		}
 		
-		String result = "Product created : " + student;
-		return Response.status(201).entity(result).build();
+		final String baseUri = "edu.gcu.bootcamp.java.student";
+		
+		StudentService service = new StudentServiceImpl();
+		
+		try {
+			Long studentId = service.createStudent(firstName, lastName, address, city, state, zip);
+			return Response.created(new URI(baseUri + "/" + studentId)).build();
+		}
+		catch (StudentNotAddedException exc) {
+			return Response.status(500).entity(exc.getMessage()).build();
+		} 
+		catch (URISyntaxException exc) {
+			return Response.status(500).entity(exc.getMessage()).build();
+		}
+
 	}
 }

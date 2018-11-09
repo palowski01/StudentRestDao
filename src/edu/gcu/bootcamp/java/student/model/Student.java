@@ -2,6 +2,8 @@ package edu.gcu.bootcamp.java.student.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Entity (name="student")
@@ -15,7 +17,8 @@ public class Student {
 	
 	@Id
 	@Column (name = "student_id")
-	private int studentId;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private long studentId;
 	
 	@Column (name = "address")
 	private String address;
@@ -77,13 +80,26 @@ public class Student {
 		this.lastName = lastName;
 	}
 	
-	public int getStudentId() {
+	public long getStudentId() {
 		return studentId;
 	}
 	
-	public void setStudentId(int studentId) {
+	public void setStudentId(long studentId) {
 		this.studentId = studentId;
 	}
+
+	public Student(String firstName, String lastName, String address, String city, String state,
+			String zip) {
+		super();
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.address = address;
+		this.city = city;
+		this.state = state;
+		this.zip = zip;
+	}
+	
+	
 	
 
 }
